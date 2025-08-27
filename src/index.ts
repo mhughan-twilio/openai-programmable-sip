@@ -19,15 +19,18 @@ app.use(bodyParser.raw({ type: "*/*" }));
 const client = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 const callAccept = {
-    instructions: "You are a support agent.",
+    instructions: "You are a support agent. Speak in English unless the user requests a different language.",
     model: "gpt-4o-realtime-preview-2025-06-03",
     voice: "alloy",
+    type: "realtime",
 } as const;
+
+const WELCOME_GREETING = "Thank you for calling, how can I help you?";
 
 const responseCreate = {
   type: "response.create",
   response: {
-    instructions: "Say to the user 'Thank you for calling, how can I help you'",
+    instructions: `Say to the user: ${WELCOME_GREETING}`,
   },
 } as const;
 
@@ -50,7 +53,6 @@ const websocketTask = async (uri: string): Promise<void> => {
 
   ws.on("message", (data) => {
     const text = typeof data === "string" ? data : data.toString("utf8");
-    // console.log("Received from WebSocket:", text);
   });
 
   ws.on("error", (e) => {
@@ -62,19 +64,12 @@ const websocketTask = async (uri: string): Promise<void> => {
   });
 }
 
-const connectWithRetry = async (sipWssUrl: string, attempt = 1): Promise<void> => {
+const connectWithDelay = async (sipWssUrl: string, delay: number = 1000): Promise<void> => {
 
-  try {
-    console.log("Dialing Realtime WS:", sipWssUrl, "(attempt", attempt, ")");
-    await websocketTask(sipWssUrl);
-  } catch (e) {
-    console.error("WS connect exception:", e);
-  }
-
-  // If the server rejected the upgrade (404/1006), try a short backoff once.
-  if (attempt < 3) {
-    const backoffMs = Math.min(500 * attempt, 1000);
-    setTimeout(() => connectWithRetry(sipWssUrl, attempt + 1), backoffMs);
+  try{
+    setTimeout(async () => await websocketTask(sipWssUrl), delay );
+  }catch(e){
+    console.error(`Error connecting web socket ${e}`);
   }
   
 }
@@ -97,6 +92,7 @@ app.post("/", async (req: Request, res: Response) => {
     if (type === RealtimeIncomingCall) {
       const callId: string = (event as any)?.data?.call_id;
 
+
       // Accept the Call 
       const resp = await fetch(
         `https://api.openai.com/v1/realtime/calls/${encodeURIComponent(callId)}/accept`,
@@ -105,7 +101,7 @@ app.post("/", async (req: Request, res: Response) => {
           headers: {
             Authorization: `Bearer ${OPENAI_API_KEY}`,
             "Content-Type": "application/json",
-            "OpenAI-Beta": "realtime=v1",
+            "OpenAI-Beta": "realtime=v1", 
           },
           body: JSON.stringify(callAccept),
         }
@@ -117,9 +113,10 @@ app.post("/", async (req: Request, res: Response) => {
         return res.status(500).send("Accept failed");
       }
 
+
       // Connect the web socket after a short delay
-      const wssUrl: string | undefined = (event as any)?.data?.wss_url;
-      if (wssUrl) setTimeout(() => connectWithRetry(wssUrl), 120);
+      const wssUrl = `wss://api.openai.com/v1/realtime?call_id=${callId}`
+      await connectWithDelay(wssUrl, 0); // lengthen delay if needed
 
       // Acknowledge the webhook
       res.set("Authorization", `Bearer ${OPENAI_API_KEY}`);
