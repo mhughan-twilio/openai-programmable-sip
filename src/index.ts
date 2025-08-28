@@ -26,6 +26,7 @@ const callAccept = {
     instructions: "You are a support agent. Speak in English unless the user requests a different language. If the caller asks to speak to a real person, use the addHumanAgent function.",
     model: "gpt-4o-realtime-preview-2025-07-29",
     voice: "alloy",
+    type: "realtime",
     tools: [
       {
           type: 'function',
@@ -56,7 +57,7 @@ const websocketTask = async (uri: string): Promise<void> => {
   const ws = new WebSocket(uri, {
     headers: {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "OpenAI-Beta": "realtime=v1",
+    //  "OpenAI-Beta": "realtime=v1",
       origin: "https://api.openai.com",
     },
   });
@@ -269,7 +270,7 @@ app.post("/", async (req: Request, res: Response) => {
           headers: {
             Authorization: `Bearer ${OPENAI_API_KEY}`,
             "Content-Type": "application/json",
-            "OpenAI-Beta": "realtime=v1", 
+            //"OpenAI-Beta": "realtime=v1", 
           },
           body: JSON.stringify(callAccept),
         }
