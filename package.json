@@ -11,15 +11,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pheathtwilio/openai-sip-trunking.git"
+    "url": "git+https://github.com/mhughan-twilio/openai-programmable-sip.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/pheathtwilio/openai-sip-trunking/issues"
+    "url": "https://github.com/mhughan-twilio/openai-programmable-sip/issues"
   },
-  "homepage": "https://github.com/pheathtwilio/openai-sip-trunking#readme",
+  "homepage": "https://github.com/mhughan-twilio/openai-programmable-sipg#readme",
   "dependencies": {
     "body-parser": "^2.2.0",
     "dotenv": "^17.2.1",
