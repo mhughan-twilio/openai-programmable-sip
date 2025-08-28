@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import WebSocket from "ws";
 import OpenAI from "openai";
+import twilio from "twilio";
 import "dotenv/config";
 
 const PORT = Number(process.env.PORT ?? 8000);
@@ -16,13 +17,23 @@ if (!WEBHOOK_SECRET || !OPENAI_API_KEY) {
 const app = express();
 app.use(bodyParser.raw({ type: "*/*" }));
 
-const client = new OpenAI({ apiKey: OPENAI_API_KEY });
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = twilio(accountSid, authToken);
+const openAiClient = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 const callAccept = {
     instructions: "You are a support agent. Speak in English unless the user requests a different language.",
-    model: "gpt-4o-realtime-preview-2025-06-03",
+    model: "gpt-4o-realtime-preview-2025-07-29",
     voice: "alloy",
-    type: "realtime",
+    tools: [
+      {
+          type: 'function',
+          name: 'addHumanAgent',
+          description: 'Adds a human agent to the call with the user.',
+          parameters: {"type": "object", "properties": {}, "required": []},
+      }
+  ]
 } as const;
 
 const WELCOME_GREETING = "Thank you for calling, how can I help you?";
@@ -33,6 +44,8 @@ const responseCreate = {
     instructions: `Say to the user: ${WELCOME_GREETING}`,
   },
 } as const;
+
+var callIDtoConferenceIDMapping: Record<string, string | undefined> = {};
 
 const RealtimeIncomingCall = "realtime.call.incoming" as const;
 
@@ -53,7 +66,75 @@ const websocketTask = async (uri: string): Promise<void> => {
 
   ws.on("message", (data) => {
     const text = typeof data === "string" ? data : data.toString("utf8");
+
+    try {
+      const response = JSON.parse(text);
+      
+      if (response.type === 'response.done') {
+          const output = response.response?.output?.[0];
+          if (output) {
+              handleFunctionCall(output, uri);
+          };
+          }
+      
+  } catch (error) {
+      console.error('Error processing OpenAI message:', error, 'Raw message:', data);
+  }
   });
+
+  function handleFunctionCall(output: { type: string; name: string; call_id: any; }, uri: string | URL) {
+
+    if (output?.type === "function_call" &&
+        output?.name === "addHumanAgent" &&
+        output?.call_id
+      ) {
+  
+        const url = new URL(uri);
+        const extractedCallId = url.searchParams.get("call_id");
+  
+        if (extractedCallId) {
+          addHuman(extractedCallId);
+        } else {
+          console.error("Call ID is null, cannot add human agent.");
+        }
+  
+        const keepChatting = {
+            type: 'conversation.item.create',
+            item: {
+                type: 'message',
+                role: 'user',
+                content: [
+                    {
+                        type: 'input_text',
+                        text: 'While we wait for the human agent, keep chatting with the user or ask if theres anything you can help with while they wait.',
+                    }
+                ]
+            }
+        };
+  
+        ws.send(JSON.stringify(keepChatting));
+        ws.send(JSON.stringify({ type: 'response.create' }));
+    }
+  }
+
+  async function addHuman(openAiCallId : string) {
+
+    const conferenceName = callIDtoConferenceIDMapping[openAiCallId];
+    if (!conferenceName) {
+      console.error('Conference name is undefined for call ID:', openAiCallId);
+      return;
+    }
+    console.log('Adding human to conference:', conferenceName);
+    const participant = await client
+        .conferences(conferenceName)
+        .participants.create({
+            from: process.env.TWILIO_PHONE_NUMBER ?? (() => { throw new Error("TWILIO_PHONE_NUMBER is not defined"); })(),
+            label: "human agent",
+            to: process.env.HUMAN_AGENT_NUMBER ?? (() => { throw new Error("HUMAN_AGENT_NUMBER is not defined"); })(),
+            earlyMedia: false,
+        });
+  }
+  
 
   ws.on("error", (e) => {
     console.error("WebSocket error:", JSON.stringify(e));
@@ -65,7 +146,6 @@ const websocketTask = async (uri: string): Promise<void> => {
 }
 
 const connectWithDelay = async (sipWssUrl: string, delay: number = 1000): Promise<void> => {
-
   try{
     setTimeout(async () => await websocketTask(sipWssUrl), delay );
   }catch(e){
@@ -74,6 +154,76 @@ const connectWithDelay = async (sipWssUrl: string, delay: number = 1000): Promis
   
 }
 
+app.post("/incoming-call", (req: Request, res: Response) => {
+
+  const rawBody = req.body.toString("utf8");
+  const parsedBody = Object.fromEntries(new URLSearchParams(rawBody));
+
+  const conferenceName = `${parsedBody.CallSid}`;
+
+  async function createParticipant() {
+      const participant = await client
+          .conferences(conferenceName)
+          .participants.create({
+              from: parsedBody.From, // Use the from number from the call
+              label: "virtual agent",
+              to: `sip:${process.env.OPENAI_PROJECT_ID}@sip.api.openai.com;transport=tls?X-conferenceName=${conferenceName}`,
+              earlyMedia: false,
+              callToken: parsedBody.CallToken,
+              conferenceStatusCallback: `${process.env.BASE_URL}/conference-events`,
+              conferenceStatusCallbackEvent: ['join']
+          });
+
+      return participant;
+      
+      }
+     const participant = createParticipant();
+
+  const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+                        <Response>
+                            <Dial>
+                                <Conference 
+                                    startConferenceOnEnter="true"
+                                    participantLabel="customer"
+                                    endConferenceOnExit="true"
+                                >
+                                    ${conferenceName}
+                                </Conference>
+                            </Dial>
+                        </Response>`;
+  res.type('text/xml').send(twimlResponse);
+});
+
+
+app.post("/conference-events", (req: Request, res: Response) => {
+
+  const rawBody = req.body.toString("utf8");
+  const parsedBody = Object.fromEntries(new URLSearchParams(rawBody));
+
+  if (parsedBody.ParticipantLabel === 'human agent' && parsedBody.StatusCallbackEvent === 'participant-join') {
+      
+      async function findVirtualAgentandDisconnect() {
+          const participants = await client
+            .conferences(parsedBody.ConferenceSid)
+            .participants.list({
+              limit: 20,
+            });
+        
+          for (const participant of participants) {
+              if (participant.label === 'virtual agent') {
+
+                  // End the virtual agent call
+                  await client.calls(participant.callSid).update({ status: 'completed' });
+                  console.log('Virtual agent call ended.');
+              }
+          }
+        }
+
+      findVirtualAgentandDisconnect();
+      
+  }
+});
+
 app.get("/health", async (req: Request, res: Response ) => {
   return res.status(200).send(`Health ok`);
 });
@@ -81,7 +231,7 @@ app.get("/health", async (req: Request, res: Response ) => {
 app.post("/", async (req: Request, res: Response) => {
 
   try {
-    const event = await client.webhooks.unwrap(
+    const event = await openAiClient.webhooks.unwrap(
       req.body.toString("utf8"),
       req.headers as Record<string, string>,
       WEBHOOK_SECRET
@@ -91,6 +241,18 @@ app.post("/", async (req: Request, res: Response) => {
 
     if (type === RealtimeIncomingCall) {
       const callId: string = (event as any)?.data?.call_id;
+      const sipHeaders = (event as any)?.data?.sip_headers;
+
+      let foundConferenceName: string | undefined;
+
+      if (Array.isArray(sipHeaders)) {
+        const conferenceHeader = sipHeaders.find(
+          (header: any) => header.name === "X-conferenceName"
+        );
+        foundConferenceName = conferenceHeader?.value;
+      }
+  
+      callIDtoConferenceIDMapping[callId] = foundConferenceName;
 
 
       // Accept the Call 
