@@ -48,7 +48,7 @@ This project demonstrates how to use OpenAI's SIP Connector to the Realtime API 
     ```
 2. In any terminal, execute:
     ```bash
-    ngrok http 8000 --url <ngrok domain endpoint>
+    ngrok http 8000 --url https://{DOMAIN}}
     ```
 
 3. From the project directory, start the application:
@@ -56,7 +56,7 @@ This project demonstrates how to use OpenAI's SIP Connector to the Realtime API 
     npm run dev
     ```
 
-4. Update the incoming voice url of your Twilio number to `https://{BASE_URL}}/incoming-call`.
+4. Update the incoming voice url of your Twilio number to `https://{DOMAIN}}/incoming-call`.
 
 5. Place a call to your Twilio Number.
 
