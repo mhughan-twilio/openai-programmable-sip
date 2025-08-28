@@ -32,7 +32,7 @@ This project demonstrates how to use OpenAI's SIP Connector to the Realtime API 
 
 ## Usage
 
-1. Populate the `.env` file with your OpenAI and Twilio credentials, the url for your tunneling solution like Ngrok, and the number for the human agent:
+1. Duplicate the `example.env` file, rename it to `.env` and populate it with your OpenAI and Twilio credentials, the url for your tunneling solution like Ngrok, and the number for the human agent:
     ```
     OPENAI_API_KEY=sk-proj-
     OPENAI_WEBHOOK_SECRET=whsec
@@ -46,16 +46,21 @@ This project demonstrates how to use OpenAI's SIP Connector to the Realtime API 
 
     HUMAN_AGENT_NUMBER=+15551112222
     ```
-2. Start the application:
+2. In any terminal, execute:
+    ```bash
+    ngrok http 8000 --url <ngrok domain endpoint>
+    ```
+
+3. From the project directory, start the application:
     ```bash
     npm run dev
     ```
 
-3. Update the incoming voice url of your Twilio number to `{BASE_URL}}/incoming-call`.
+4. Update the incoming voice url of your Twilio number to `https://{BASE_URL}}/incoming-call`.
 
-4. Place a call to your Twilio Number.
+5. Place a call to your Twilio Number.
 
-5. Follow the logs to ensure the service is running.
+6. Follow the logs to ensure the service is running.
 
 ## Contributing
 
