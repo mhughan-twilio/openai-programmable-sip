@@ -40,7 +40,7 @@ const VOICE = "alloy";
 const responseCreate = {
   type: "response.create",
   response: {
-    instructions: `Say to the user: ${WELCOME_GREETING}`,
+    instructions: `In English, say to the user: ${WELCOME_GREETING}`,
   },
 } as const;
 
