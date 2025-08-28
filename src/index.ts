@@ -23,7 +23,7 @@ const client = twilio(accountSid, authToken);
 const openAiClient = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 const callAccept = {
-    instructions: "You are a support agent. Speak in English unless the user requests a different language.",
+    instructions: "You are a support agent. Speak in English unless the user requests a different language. If the caller asks to speak to a real person, use the addHumanAgent function.",
     model: "gpt-4o-realtime-preview-2025-07-29",
     voice: "alloy",
     tools: [
@@ -45,7 +45,9 @@ const responseCreate = {
   },
 } as const;
 
-var callIDtoConferenceIDMapping: Record<string, string | undefined> = {};
+var callIDtoConferenceNameMapping: Record<string, string | undefined> = {};
+var ConferenceNametoCallerIDMapping: Record<string, string | undefined> = {};
+var ConferenceNametoCallTokenMapping: Record<string, string | undefined> = {};
 
 const RealtimeIncomingCall = "realtime.call.incoming" as const;
 
@@ -88,7 +90,6 @@ const websocketTask = async (uri: string): Promise<void> => {
         output?.name === "addHumanAgent" &&
         output?.call_id
       ) {
-  
         const url = new URL(uri);
         const extractedCallId = url.searchParams.get("call_id");
   
@@ -119,19 +120,23 @@ const websocketTask = async (uri: string): Promise<void> => {
 
   async function addHuman(openAiCallId : string) {
 
-    const conferenceName = callIDtoConferenceIDMapping[openAiCallId];
+    const conferenceName = callIDtoConferenceNameMapping[openAiCallId];
     if (!conferenceName) {
       console.error('Conference name is undefined for call ID:', openAiCallId);
       return;
     }
     console.log('Adding human to conference:', conferenceName);
+    const callToken = ConferenceNametoCallTokenMapping[conferenceName];
+    const callerID = ConferenceNametoCallerIDMapping[conferenceName];
+
     const participant = await client
         .conferences(conferenceName)
         .participants.create({
-            from: process.env.TWILIO_PHONE_NUMBER ?? (() => { throw new Error("TWILIO_PHONE_NUMBER is not defined"); })(),
+            from: callerID ?? (() => { throw new Error("CallerID is not defined"); })(),
             label: "human agent",
             to: process.env.HUMAN_AGENT_NUMBER ?? (() => { throw new Error("HUMAN_AGENT_NUMBER is not defined"); })(),
             earlyMedia: false,
+            callToken: callToken ?? (() => { throw new Error("CallToken is not defined"); })(),
         });
   }
   
@@ -161,8 +166,12 @@ app.post("/incoming-call", (req: Request, res: Response) => {
 
   const conferenceName = `${parsedBody.CallSid}`;
 
+  ConferenceNametoCallerIDMapping[conferenceName] = parsedBody.From;
+  ConferenceNametoCallTokenMapping[conferenceName] = parsedBody.CallToken;
+
   async function createParticipant() {
-      const participant = await client
+    
+      await client
           .conferences(conferenceName)
           .participants.create({
               from: parsedBody.From, // Use the from number from the call
@@ -172,12 +181,9 @@ app.post("/incoming-call", (req: Request, res: Response) => {
               callToken: parsedBody.CallToken,
               conferenceStatusCallback: `${process.env.BASE_URL}/conference-events`,
               conferenceStatusCallbackEvent: ['join']
-          });
-
-      return participant;
-      
-      }
-     const participant = createParticipant();
+          });      
+  }
+  createParticipant();
 
   const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
                         <Response>
@@ -252,7 +258,7 @@ app.post("/", async (req: Request, res: Response) => {
         foundConferenceName = conferenceHeader?.value;
       }
   
-      callIDtoConferenceIDMapping[callId] = foundConferenceName;
+      callIDtoConferenceNameMapping[callId] = foundConferenceName;
 
 
       // Accept the Call 
