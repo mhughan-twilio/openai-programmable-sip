@@ -32,9 +32,9 @@ var callIDtoConferenceNameMapping: Record<string, string | undefined> = {};
 var ConferenceNametoCallerIDMapping: Record<string, string | undefined> = {};
 var ConferenceNametoCallTokenMapping: Record<string, string | undefined> = {};
 
-const WELCOME_GREETING = "Hello, you're speaking with a virtual agent. How can I help you?";
+const WELCOME_GREETING = "Hello, I'm an AI agent. How can I help you?";
 const SYSTEM_PROMPT = "You are a support agent. Speak in English unless the user requests a different language. If the caller asks to speak to a real person, use the addHumanAgent function.";
-const MODEL = "gpt-4o-realtime-preview-2025-07-29";
+const MODEL = "gpt-realtime-2025-08-28";
 const VOICE = "alloy";
 
 const responseCreate = {
