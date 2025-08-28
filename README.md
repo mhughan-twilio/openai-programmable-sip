@@ -48,7 +48,7 @@ This project demonstrates how to use OpenAI's SIP Connector to the Realtime API 
     ```
 2. In any terminal, execute:
     ```bash
-    ngrok http 8000 --url https://{DOMAIN}}
+    ngrok http 8000 --url https://{DOMAIN}
     ```
 
 3. From the project directory, start the application:
