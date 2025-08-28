@@ -180,7 +180,7 @@ app.post("/incoming-call", (req: Request, res: Response) => {
               to: `sip:${process.env.OPENAI_PROJECT_ID}@sip.api.openai.com;transport=tls?X-conferenceName=${conferenceName}`,
               earlyMedia: false,
               callToken: parsedBody.CallToken,
-              conferenceStatusCallback: `${process.env.BASE_URL}/conference-events`,
+              conferenceStatusCallback: `https://${process.env.DOMAIN}/conference-events`,
               conferenceStatusCallbackEvent: ['join']
           });      
   }

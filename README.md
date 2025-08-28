@@ -9,7 +9,7 @@ This project demonstrates how to use OpenAI's SIP Connector to the Realtime API 
 ### Prerequisites
 
 - An upgraded Twilio account with a [Primary Business Profile](https://www.twilio.com/docs/trust-hub/trusthub-rest-api/console-create-a-primary-customer-profile) - Sign up using [this link](https://www.twilio.com/try-twilio)
-- A Twilio numbers with Voice capabilities. See [instructions](https://help.twilio.com/articles/223135247-How-to-Search-for-and-Buy-a-Twilio-Phone-Number-from-Console) to purchase
+- A Twilio number with Voice capabilities. See [instructions](https://help.twilio.com/articles/223135247-How-to-Search-for-and-Buy-a-Twilio-Phone-Number-from-Console) to purchase
 - An [OpenAI API key](https://beta.openai.com/account/api-keys) on a premium plan or with available credits
 - Access to the OpenAI Realtime API. Check [here](https://platform.openai.com/docs/guides/realtime) for more information
 - Node.js/Typescript (I used version 22.15.0 – you can download it from [here](https://nodejs.org/es/blog/release/v22.15.0))
@@ -39,7 +39,7 @@ This project demonstrates how to use OpenAI's SIP Connector to the Realtime API 
     OPENAI_PROJECT_ID=proj_
 
     PORT=8000
-    BASE_URL=https://mhughan.ngrok.io
+    DOMAIN=mhughan.ngrok.io
 
     TWILIO_ACCOUNT_SID=
     TWILIO_AUTH_TOKEN=
@@ -51,7 +51,7 @@ This project demonstrates how to use OpenAI's SIP Connector to the Realtime API 
     npm run dev
     ```
 
-3. Update the incoming voice url of your Twilio Number to `{BASE_URL}}/incoming-call`.
+3. Update the incoming voice url of your Twilio number to `{BASE_URL}}/incoming-call`.
 
 4. Place a call to your Twilio Number.
 
