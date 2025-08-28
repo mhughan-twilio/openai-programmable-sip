@@ -2,7 +2,7 @@
 
 ## About the Project
 
-This project demonstrates how to use OpenAI's SIP Connector to the Realtime API with Twilio Programmable Voice so you can perform a warm trasfer from a virtual to human agent.
+This project demonstrates how to use OpenAI's SIP Connector to the Realtime API with Twilio Programmable Voice so you can perform a warm transfer from a virtual to human agent.
 
 ## Getting Started
 
@@ -50,9 +50,12 @@ This project demonstrates how to use OpenAI's SIP Connector to the Realtime API 
     ```bash
     npm run dev
     ```
-3. Update the incoming voice url of your Twilio Number with `{BASE_URL}}/incoming-call`.
 
-4. Follow the logs to ensure the service is running.
+3. Update the incoming voice url of your Twilio Number to `{BASE_URL}}/incoming-call`.
+
+4. Place a call to your Twilio Number.
+
+5. Follow the logs to ensure the service is running.
 
 ## Contributing
 
