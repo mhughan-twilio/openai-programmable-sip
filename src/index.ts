@@ -92,6 +92,8 @@ app.post("/incoming-call", (req: Request, res: Response) => {
                                     startConferenceOnEnter="true"
                                     participantLabel="customer"
                                     endConferenceOnExit="true"
+                                    statusCallback="https://${DOMAIN}/conference-events"
+                                    statusCallbackEvent="join"
                                 >
                                     ${conferenceName}
                                 </Conference>
