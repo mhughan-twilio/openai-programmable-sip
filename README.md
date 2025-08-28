@@ -1,1 +1,1 @@
-# openai-sip-trunking
+# openai-programmable-sip
