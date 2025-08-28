@@ -3,6 +3,7 @@
 ## About the Project
 
 This project demonstrates how to use OpenAI's SIP Connector to the Realtime API with Twilio Programmable Voice so you can perform a warm transfer from a virtual to human agent.
+<img width="622" height="714" alt="image" src="https://github.com/user-attachments/assets/eded89c4-154a-4ea1-813e-c7263c33e45b" />
 
 ## Getting Started
 
