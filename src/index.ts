@@ -34,7 +34,7 @@ var ConferenceNametoCallTokenMapping: Record<string, string | undefined> = {};
 
 const WELCOME_GREETING = "Hello, I'm an AI agent. How can I help you?";
 const SYSTEM_PROMPT = "You are a support agent. Speak in English unless the user requests a different language. If the caller asks to speak to a real person, use the addHumanAgent function.";
-const MODEL = "gpt-realtime-2025-08-28";
+const MODEL = "gpt-realtime";
 const VOICE = "alloy";
 
 const responseCreate = {
@@ -47,8 +47,10 @@ const responseCreate = {
 const callAccept = {
     instructions: SYSTEM_PROMPT,
     model: MODEL,
-    voice: VOICE,
-    //type: "realtime",
+    audio: {
+      output: { voice: VOICE },
+    },
+    type: "realtime",
     tools: [
       {
           type: 'function',
@@ -60,7 +62,7 @@ const callAccept = {
 } as const;
 
 app.post("/incoming-call", (req: Request, res: Response) => {
-
+console.log("Incoming call webhook received");
   const rawBody = req.body.toString("utf8");
   const parsedBody = Object.fromEntries(new URLSearchParams(rawBody));
 
@@ -171,7 +173,6 @@ app.post("/", async (req: Request, res: Response) => {
           headers: {
             Authorization: `Bearer ${OPENAI_API_KEY}`,
             "Content-Type": "application/json",
-            "OpenAI-Beta": "realtime=v1", 
           },
           body: JSON.stringify(callAccept),
         }
@@ -222,7 +223,6 @@ const websocketTask = async (uri: string): Promise<void> => {
   const ws = new WebSocket(uri, {
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "OpenAI-Beta": "realtime=v1",
       origin: "https://api.openai.com",
     },
   });
