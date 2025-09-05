@@ -28,9 +28,9 @@ const app = express();
 app.use(bodyParser.raw({ type: "*/*" }));
 const RealtimeIncomingCall = "realtime.call.incoming" as const;
 
-var callIDtoConferenceNameMapping: Record<string, string | undefined> = {};
-var ConferenceNametoCallerIDMapping: Record<string, string | undefined> = {};
-var ConferenceNametoCallTokenMapping: Record<string, string | undefined> = {};
+const callIDtoConferenceNameMapping: Record<string, string | undefined> = {};
+const ConferenceNametoCallerIDMapping: Record<string, string | undefined> = {};
+const ConferenceNametoCallTokenMapping: Record<string, string | undefined> = {};
 
 const WELCOME_GREETING = "Hello, I'm an AI agent. How can I help you?";
 const SYSTEM_PROMPT = "You are a support agent. Speak in English unless the user requests a different language. If the caller asks to speak to a real person, use the addHumanAgent function.";
